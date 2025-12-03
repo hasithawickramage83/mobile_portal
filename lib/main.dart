@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:login_portal/screens/login_screen.dart';
 import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart'; // For the named route in Dashboard
 
 void main() {
   runApp(const MyApp());
