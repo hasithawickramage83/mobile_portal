@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'login_screen.dart';
+
 class ResetPasswordScreen extends StatelessWidget {
   const ResetPasswordScreen({super.key});
 
@@ -26,7 +28,10 @@ class ResetPasswordScreen extends StatelessWidget {
               onPressed: () {
                 // Reset password logic
                 // Typically pop to the Login screen
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
               },
               child: const Text('Reset Password'),
             ),
