@@ -1,43 +1,211 @@
 import 'package:flutter/material.dart';
-
 import 'login_screen.dart';
 
-class ResetPasswordScreen extends StatelessWidget {
+// --- Custom Colors ---
+const Color _primaryPurple = Color(0xFF5D3E8E);
+const Color _primaryOrange = Color(0xFFF58220);
+const Color _secondaryOrange = Color(0xFFF2A332);
+
+class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
 
   @override
+  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+}
+
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _newPasswordController =
+  TextEditingController();
+  final TextEditingController _confirmPasswordController =
+  TextEditingController();
+
+  void _resetPassword() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Reset Password')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const TextField(
-              obscureText: true,
-              decoration: InputDecoration(labelText: 'New Password'),
+      body: Stack(
+        children: [
+          // Background
+          Container(color: const Color(0xFFF7F7F7)),
+
+          // Bottom Curve
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: ClipPath(
+              clipper: CustomLoginClipper(),
+              child: Container(
+                height: screenHeight * 0.35,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: [_secondaryOrange, _primaryOrange],
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
-            const TextField(
-              obscureText: true,
-              decoration: InputDecoration(labelText: 'Confirm New Password'),
+          ),
+
+          // Main Content
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 120),
+
+                    const Text(
+                      'Reset Password',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    const Text(
+                      'Create a new secure password',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // --- New Password ---
+                    TextFormField(
+                      controller: _newPasswordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'New Password',
+                        border: UnderlineInputBorder(),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide:
+                          BorderSide(color: _primaryPurple, width: 2),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Password is required';
+                        }
+                        if (value.length < 6) {
+                          return 'Minimum 6 characters';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // --- Confirm Password ---
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Confirm New Password',
+                        border: UnderlineInputBorder(),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide:
+                          BorderSide(color: _primaryPurple, width: 2),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Confirm your password';
+                        }
+                        if (value != _newPasswordController.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // --- Reset Button ---
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _resetPassword,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryPurple,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          'Reset Password',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Reset password logic
-                // Typically pop to the Login screen
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              },
-              child: const Text('Reset Password'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
+
+// ------------------------------------------
+// --- Reused Custom Clipper ---
+// ------------------------------------------
+
+class CustomLoginClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height);
+    path.lineTo(size.width, size.height);
+    path.lineTo(size.width, size.height * 0.60);
+
+    path.quadraticBezierTo(
+        size.width * 0.95,
+        size.height * 0.40,
+        size.width * 0.60,
+        size.height * 0.50);
+
+    path.quadraticBezierTo(
+        size.width * 0.45,
+        size.height * 0.55,
+        size.width * 0.35,
+        size.height * 0.75);
+
+    path.quadraticBezierTo(
+        size.width * 0.20,
+        size.height * 0.85,
+        0,
+        size.height * 0.90);
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomLoginClipper oldClipper) => false;
 }
