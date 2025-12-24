@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 
 // --- Custom Colors ---
@@ -15,13 +19,74 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
+  bool _isLoading = false;
   final TextEditingController _newPasswordController =
   TextEditingController();
   final TextEditingController _confirmPasswordController =
   TextEditingController();
+  Future<void> _resetPassword() async {
+    final prefs = await SharedPreferences.getInstance();
 
-  void _resetPassword() {
+    final emailAdd = prefs.getString('user_email') ?? '';
+    final otp = prefs.getString('user_otp') ?? '';
+    showErrorDialog("emailAdd");
+    debugPrint("Email: $emailAdd");
+    _navigateLogin();
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    const String url = 'https://mindecho.afford-it.co.nz/api/resend-otp';
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "email":  emailAdd,
+          "otp":otp,
+          "password": _newPasswordController.text.trim(),
+          "password_confirmation":_confirmPasswordController.text.trim()
+        }),
+      );
+
+      final Map<String, dynamic> result = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200 && result['meta']['status'] == 200) {
+        _navigateLogin();
+
+      } else {
+        showErrorDialog(result['meta']['message'] ?? "failed");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog("Something went wrong.\n${e.toString()}");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+  void showErrorDialog(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Error"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  void _navigateLogin() {
     if (_formKey.currentState!.validate()) {
       Navigator.pushReplacement(
         context,

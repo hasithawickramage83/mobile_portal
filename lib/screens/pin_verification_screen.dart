@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'reset_password_screen.dart';
 
 // --- Custom Colors ---
@@ -17,8 +21,67 @@ class PinVerificationScreen extends StatefulWidget {
 class _PinVerificationScreenState extends State<PinVerificationScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   String pinValue = "";
+  TextEditingController pinController = TextEditingController();
+  bool _isLoading = false;
+  Future<void> _verifyPin() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_otp',pinController.text.trim());
+    final emailAdd = prefs.getString('user_email') ?? '';
+    showErrorDialog("emailAdd");
+    debugPrint("Email: $emailAdd");
+    _navigateReset();
+    if (!_formKey.currentState!.validate()) return;
 
-  void _verifyPin() {
+    setState(() => _isLoading = true);
+    const String url = 'https://mindecho.afford-it.co.nz/api/resend-otp';
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "email":  emailAdd,
+          "otp": pinController.text.trim()
+        }),
+      );
+
+      final Map<String, dynamic> result = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200 && result['meta']['status'] == 200) {
+        _navigateReset();
+
+          } else {
+        showErrorDialog(result['meta']['message'] ?? "failed");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog("Something went wrong.\n${e.toString()}");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+  void showErrorDialog(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Error"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateReset() {
     if (_formKey.currentState!.validate()) {
       Navigator.pushReplacement(
         context,
@@ -90,6 +153,7 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
 
                     // --- PIN Input ---
                     PinCodeTextField(
+                      controller: pinController,
                       appContext: context,
                       length: 6,
                       keyboardType: TextInputType.number,

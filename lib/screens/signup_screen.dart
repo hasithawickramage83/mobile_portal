@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'login_screen.dart';
 
 // --- Custom Colors ---
@@ -15,6 +18,87 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  // ---------------- API LOGIN ----------------
+  Future<void> _signUpApi() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    const String url = 'https://mindecho.afford-it.co.nz/api/register';
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "name":_nameController.text.trim(),
+          "email": _emailController.text.trim(),
+          "password": _passwordController.text.trim(),
+          "device_token": "flutter_device_token",
+        }),
+      );
+
+      final Map<String, dynamic> result = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200 && result['meta']['status'] == 200) {
+
+
+        _showSuccessDialog("Registration successful for ${_emailController.text.trim()} ", navigate: true);
+      } else {
+        showErrorDialog(result['meta']['message'] ?? "Registration failed");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog("Something went wrong.\n${e.toString()}");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // --- Error Dialog ---
+  void showErrorDialog(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Error"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+  // --- Success Dialog ---
+  void _showSuccessDialog(String msg, {bool navigate = false}) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(msg),
+        content: const Text("Login successful"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (navigate) _navigateToLogin();
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _navigateToLogin() {
     Navigator.pushReplacement(
@@ -92,6 +176,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     // --- Full Name ---
                     TextFormField(
+                      controller: _nameController,
                       decoration: const InputDecoration(
                         labelText: 'Full Name',
                         border: UnderlineInputBorder(),
@@ -112,6 +197,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     // --- Email ---
                     TextFormField(
+                      controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
                         labelText: 'Email',
@@ -138,6 +224,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     // --- Password ---
                     TextFormField(
+                      controller: _passwordController,
                       obscureText: true,
                       decoration: const InputDecoration(
                         labelText: 'Password',
@@ -166,7 +253,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            _navigateToLogin();
+                            _signUpApi();
                           }
                         },
                         style: ElevatedButton.styleFrom(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 // Placeholder Pages for the Bottom Navigation
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
@@ -30,6 +30,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+  String _userName = 'Test user';
 
   static const List<Widget> _widgetOptions = <Widget>[
     HomeTab(),
@@ -44,33 +45,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  // Load user name from SharedPreferences
+  Future<void> _loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('user_name') ?? 'Test user App';
+    if (mounted) {
+      setState(() {
+        _userName = name;
+      });
+    }
+  }
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: Text('Welcome, $_userName'), // Display user name in AppBar
       ),
       // --- Side Drawer ---
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
-            const DrawerHeader(
-              decoration: BoxDecoration(
+            DrawerHeader(
+              decoration: const BoxDecoration(
                 color: Colors.blue,
               ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    _userName, // Display user name dynamically
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Dashboard',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
               ),
             ),
             ListTile(
               leading: const Icon(Icons.favorite),
               title: const Text('Favorites'),
               onTap: () {
-                // Handle navigation to a different screen
                 Navigator.pop(context); // Close the drawer
               },
             ),
@@ -78,17 +108,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
               onTap: () {
-                // Implement Logout logic (e.g., clear tokens)
-                // Then navigate to LoginScreen and remove all previous routes
                 Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/login', // Assuming you set up a route named '/login'
+                  '/login', // Your login route
                       (Route<dynamic> route) => false,
                 );
               },
             ),
           ],
         ),
-      ),
+      )
+      ,
       // --- Content (Current Tab) ---
       body: _widgetOptions.elementAt(_selectedIndex),
 
